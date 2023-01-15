@@ -1,5 +1,4 @@
 // System call numbers
-#define SYSCALLNUM  22 //!numbers of system_call 
 #define SYS_fork    1
 #define SYS_exit    2
 #define SYS_wait    3

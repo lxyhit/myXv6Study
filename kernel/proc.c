@@ -5,6 +5,7 @@
 #include "spinlock.h"
 #include "proc.h"
 #include "defs.h"
+#include "syscall.h"
 
 struct cpu cpus[NCPU];
 
@@ -19,6 +20,33 @@ extern void forkret(void);
 static void freeproc(struct proc *p);
 
 extern char trampoline[]; // trampoline.S
+
+// *系统调用名字的数组
+static char * syscall_name[]={
+  [SYS_fork]      =    "syscall fork",
+  [SYS_exit]      =    "syscall exit",
+  [SYS_wait]      =    "syscall wait",
+  [SYS_pipe]      =    "syscall pipe",
+  [SYS_read]      =    "syscall read",
+  [SYS_kill]      =    "syscall kill",
+  [SYS_exec]      =    "syscall exec",
+  [SYS_fstat]     =    "syscall fstat",
+  [SYS_chdir]     =    "syscall chdir",
+  [SYS_dup]       =    "syscall dup",
+  [SYS_getpid]    =    "syscall getpid",
+  [SYS_sbrk]      =    "syscall sbrk",
+  [SYS_sleep]     =    "syscall sleep",
+  [SYS_uptime]    =    "syscall uptime",
+  [SYS_open]      =    "syscall open",
+  [SYS_write]     =    "syscall write",
+  [SYS_mknod]     =    "syscall mknod",
+  [SYS_unlink]    =    "syscall unlink",
+  [SYS_link]      =    "syscall link",
+  [SYS_mkdir]     =    "syscall mkdir",
+  [SYS_close]     =    "syscall close",
+  [SYS_trace]     =    "syscall trace",
+  
+};
 
 // helps ensure that wakeups of wait()ing
 // parents are not lost. helps obey the
@@ -295,6 +323,9 @@ fork(void)
   // Cause fork to return 0 in the child.
   np->trapframe->a0 = 0;
 
+  // copy mask.
+  np -> mask = p -> mask;
+
   // increment reference counts on open file descriptors.
   for(i = 0; i < NOFILE; i++)
     if(p->ofile[i])
@@ -315,6 +346,10 @@ fork(void)
   np->state = RUNNABLE;
   release(&np->lock);
 
+  if((np->mask >> SYS_fork & 1 )== 1){
+      printf("%d: %s -> %d\n",np->pid,syscall_name[SYS_fork],np->trapframe->a0);
+  }
+  
   return pid;
 }
 
@@ -652,5 +687,18 @@ procdump(void)
       state = "???";
     printf("%d %s %s", p->pid, state, p->name);
     printf("\n");
+  }
+}
+
+
+int
+trace(int mask){
+  struct proc *p = myproc();
+  p->mask = mask;
+
+  if(p->mask == mask){
+    return 0;
+  }else{
+    return -1;
   }
 }
