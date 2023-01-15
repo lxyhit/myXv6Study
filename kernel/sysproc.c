@@ -95,3 +95,11 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+uint64
+sys_trace(void)
+{
+  uint mask;
+  argint(0,&mask);
+  return trace(mask);
+}
