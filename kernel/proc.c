@@ -6,6 +6,7 @@
 #include "proc.h"
 #include "defs.h"
 #include "syscall.h"
+#include "sysinfo.h"
 
 struct cpu cpus[NCPU];
 
@@ -45,6 +46,7 @@ static char * syscall_name[]={
   [SYS_mkdir]     =    "syscall mkdir",
   [SYS_close]     =    "syscall close",
   [SYS_trace]     =    "syscall trace",
+  [SYS_sysinfo]   =    "syscall sysinfo",
   
 };
 
@@ -690,7 +692,6 @@ procdump(void)
   }
 }
 
-
 int
 trace(int mask){
   struct proc *p = myproc();
@@ -701,4 +702,36 @@ trace(int mask){
   }else{
     return -1;
   }
+}
+
+// Find the number of processes whose `state` is not `UNUSED`.
+uint64
+fnproc(void)
+{
+  struct proc *p;
+  uint64 count = 0;
+
+  for(p = proc; p < &proc[NPROC]; p++) {
+    acquire(&p->lock);
+    if(p->state != UNUSED) {
+      count += 1;
+    } 
+    release(&p->lock);
+  }
+  return count;
+}
+
+int sysinfo(struct sysinfo * addr){
+  
+  struct proc *p = myproc();
+  uint64 pnumber = fnproc();
+  uint64 fmemsize = gfmemory();
+
+  if(copyout(p->pagetable, (uint64)& addr -> nproc, (char*)&pnumber, sizeof(pnumber)) < 0){
+    return -1;
+  }
+  if(copyout(p->pagetable, (uint64)& addr -> freemem, (char*)&fmemsize, sizeof(fmemsize)) < 0){
+    return -1;
+  }
+  return 0;
 }
